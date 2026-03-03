@@ -1,36 +1,11 @@
-# rules.py
+def check_account_age(account_age_days, threshold, score):
+    return score if account_age_days < threshold else 0
 
-def account_age_rule(account_age, weight):
-    """
-    Adds risk if account age is less than threshold.
-    """
-    if account_age < 30:
-        return weight
-    return 0
+def check_transaction_frequency(txn_count_per_hour, threshold, score):
+    return score if txn_count_per_hour > threshold else 0
 
+def check_quick_forward(time_diff_minutes, threshold, score):
+    return score if time_diff_minutes < threshold else 0
 
-def transaction_velocity_rule(tx_per_hour, weight):
-    """
-    Adds risk if transactions per hour exceed limit.
-    """
-    if tx_per_hour > 10:
-        return weight
-    return 0
-
-
-def quick_forward_rule(time_diff_minutes, weight):
-    """
-    Adds risk if money is forwarded very quickly.
-    """
-    if time_diff_minutes < 5:
-        return weight
-    return 0
-
-
-def unique_sender_rule(unique_senders, weight):
-    """
-    Adds risk if account receives money from many unique senders.
-    """
-    if unique_senders > 10:
-        return weight
-    return 0
+def check_unique_senders(unique_sender_count, threshold, score):
+    return score if unique_sender_count >= threshold else 0
