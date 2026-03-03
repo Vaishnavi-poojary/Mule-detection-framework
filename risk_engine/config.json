@@ -1,1 +1,7 @@
-
+{
+  "account_age_weight": 20,
+  "velocity_weight": 25,
+  "quick_forward_weight": 30,
+  "unique_sender_weight": 15,
+  "risk_threshold": 70
+}
