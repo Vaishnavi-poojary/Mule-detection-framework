@@ -1,13 +1,9 @@
 {
-  "risk_threshold": 70,
-  "rules": {
-    "account_age_days": 30,
-    "account_age_score": 20,
-    "transactions_per_hour": 10,
-    "transactions_per_hour_score": 25,
-    "quick_forward_minutes": 5,
-    "quick_forward_score": 30,
-    "unique_senders_min": 5,
-    "unique_senders_score": 15
-  }
+  "new_account_risk": 20,
+  "large_amount_risk_1": 15,
+  "large_amount_risk_2": 25,
+  "rapid_transaction_risk": 20,
+  "high_txn_count_risk": 25,
+  "transaction_risk_threshold": 40,
+  "mule_account_threshold": 70
 }
