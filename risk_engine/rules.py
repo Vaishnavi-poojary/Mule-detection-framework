@@ -1,11 +1,18 @@
-def check_account_age(account_age_days, threshold, score):
-    return score if account_age_days < threshold else 0
+def amount_risk(amount):
+    if amount > 50000:
+        return 25
+    elif amount > 30000:
+        return 15
+    return 0
 
-def check_transaction_frequency(txn_count_per_hour, threshold, score):
-    return score if txn_count_per_hour > threshold else 0
 
-def check_quick_forward(time_diff_minutes, threshold, score):
-    return score if time_diff_minutes < threshold else 0
+def channel_risk(txn_type):
+    if txn_type in ["UPI", "IMPS"]:
+        return 10
+    return 0
 
-def check_unique_senders(unique_sender_count, threshold, score):
-    return score if unique_sender_count >= threshold else 0
+
+def rapid_activity(time_diff):
+    if time_diff < 600:  # 10 minutes
+        return 20
+    return 0
