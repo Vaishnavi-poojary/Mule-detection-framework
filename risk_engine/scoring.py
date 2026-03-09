@@ -1,29 +1,92 @@
 import pandas as pd
-import json
-from rules import check_account_age, check_transaction_frequency, check_quick_forward, check_unique_senders
 
-def load_config():
-    with open("config.json") as f:
-        return json.load(f)
+# Load dataset
+data = pd.read_csv("transactions.csv")
 
-def calculate_risk_score(account_data, config):
-    rules = config["rules"]
+
+# Convert timestamp to datetime
+data["timestamp"] = pd.to_datetime(data["timestamp"])
+
+# Sort transactions by sender and time
+data = data.sort_values(["sender", "timestamp"])
+
+# Calculate time difference between transactions for same sender
+data["time_diff"] = data.groupby("sender")["timestamp"].diff().dt.total_seconds()
+data.fillna(0, inplace=True)
+
+# Count transactions per sender
+txn_count = data.groupby("sender").size()
+
+
+# -------- Risk Rules -------- #
+
+def amount_risk(amount):
+    if amount > 50000:
+        return 25
+    elif amount > 30000:
+        return 15
+    return 0
+
+
+def channel_risk(txn_type):
+    if txn_type in ["UPI", "IMPS"]:
+        return 10
+    return 0
+
+
+def rapid_activity(time_diff):
+    if pd.notnull(time_diff) and time_diff < 600:   # 10 minutes
+        return 20
+    return 0
+
+
+# -------- Main Risk Calculation -------- #
+
+def calculate_risk(row):
+
     score = 0
-    score += check_account_age(account_data["account_age"], rules["account_age_days"], rules["account_age_score"])
-    score += check_transaction_frequency(account_data["txn_per_hour"], rules["transactions_per_hour"], rules["transactions_per_hour_score"])
-    score += check_quick_forward(account_data["min_forward_time"], rules["quick_forward_minutes"], rules["quick_forward_score"])
-    score += check_unique_senders(account_data["unique_senders"], rules["unique_senders_min"], rules["unique_senders_score"])
+
+    # Rule 1: New account
+    if row["account_age_days"] < 30:
+        score += 20
+
+    # Rule 2: Large amount transfer
+    score += amount_risk(row["amount"])
+
+    # Rule 3: Fast payment channel
+    score += channel_risk(row["transaction_type"])
+
+    # Rule 4: Rapid transactions
+    score += rapid_activity(row["time_diff"])
+
+    # Rule 5: Many transactions by same sender
+    if txn_count[row["sender"]] > 5:
+        score += 25
+
     return score
 
-def run_engine(csv_path):
-    config = load_config()
-    df = pd.read_csv(csv_path)
-    results = []
-    for _, row in df.iterrows():
-        score = calculate_risk_score(row, config)
-        results.append({
-            "account_id": row["account_id"],
-            "risk_score": score,
-            "flagged": score >= config["risk_threshold"]
-        })
-    return pd.DataFrame(results)
+
+# Apply risk scoring
+data["risk_score"] = data.apply(calculate_risk, axis=1)
+
+# Flag suspicious transactions
+data["flagged"] = data["risk_score"] > 40
+# -------- Account Level Risk -------- #
+
+account_risk = data.groupby("sender")["risk_score"].sum().reset_index()
+
+account_risk.rename(columns={"risk_score": "total_risk"}, inplace=True)
+
+# Flag mule accounts
+account_risk["is_mule"] = account_risk["total_risk"] > 70
+
+print("\nAccount Risk Scores:")
+print(account_risk)
+account_risk.to_csv("account_risk_scores.csv", index=False)
+# Extract suspicious transactions
+flagged_accounts = data[data["flagged"] == True]
+
+print("\nSuspicious Transactions:")
+print(flagged_accounts.head())
+
+flagged_accounts.to_csv("flagged_accounts.csv", index=False)
