@@ -1,4 +1,5 @@
 import pandas as pd
+from rules import amount_risk, channel_risk, rapid_activity
 
 # Load dataset
 data = pd.read_csv("transactions.csv")
