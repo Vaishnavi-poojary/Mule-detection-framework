@@ -61,7 +61,7 @@ account_risk.rename(columns={"risk_score": "total_risk"}, inplace=True)
 
 # Flag mule accounts
 account_risk["is_mule"] = account_risk["total_risk"] > 70
-
+account_risk = account_risk.sort_values(by="total_risk", ascending=False)
 print("\nAccount Risk Scores:")
 print(account_risk)
 
