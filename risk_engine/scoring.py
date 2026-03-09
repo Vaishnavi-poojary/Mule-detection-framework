@@ -4,7 +4,6 @@ from rules import amount_risk, channel_risk, rapid_activity
 # Load dataset
 data = pd.read_csv("transactions.csv")
 
-
 # Convert timestamp to datetime
 data["timestamp"] = pd.to_datetime(data["timestamp"])
 
@@ -13,32 +12,12 @@ data = data.sort_values(["sender", "timestamp"])
 
 # Calculate time difference between transactions for same sender
 data["time_diff"] = data.groupby("sender")["timestamp"].diff().dt.total_seconds()
+
+# Replace NaN values
 data.fillna(0, inplace=True)
 
 # Count transactions per sender
 txn_count = data.groupby("sender").size()
-
-
-# -------- Risk Rules -------- #
-
-def amount_risk(amount):
-    if amount > 50000:
-        return 25
-    elif amount > 30000:
-        return 15
-    return 0
-
-
-def channel_risk(txn_type):
-    if txn_type in ["UPI", "IMPS"]:
-        return 10
-    return 0
-
-
-def rapid_activity(time_diff):
-    if pd.notnull(time_diff) and time_diff < 600:   # 10 minutes
-        return 20
-    return 0
 
 
 # -------- Main Risk Calculation -------- #
@@ -72,6 +51,8 @@ data["risk_score"] = data.apply(calculate_risk, axis=1)
 
 # Flag suspicious transactions
 data["flagged"] = data["risk_score"] > 40
+
+
 # -------- Account Level Risk -------- #
 
 account_risk = data.groupby("sender")["risk_score"].sum().reset_index()
@@ -83,7 +64,10 @@ account_risk["is_mule"] = account_risk["total_risk"] > 70
 
 print("\nAccount Risk Scores:")
 print(account_risk)
+
 account_risk.to_csv("account_risk_scores.csv", index=False)
+
+
 # Extract suspicious transactions
 flagged_accounts = data[data["flagged"] == True]
 
