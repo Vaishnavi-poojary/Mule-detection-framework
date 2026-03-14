@@ -1,141 +1,54 @@
-**Mule Detection Framework**
----
+Mule Detection Framework
+A machine learning based framework designed to detect fraudulent financial transactions by analyzing behavioral patterns in transaction data.
+Problem
+Financial systems face fraud through mule accounts that transfer illegal funds across multiple transactions. Traditional rule-based systems fail because fraudsters constantly change behavior. This project uses machine learning to automatically detect suspicious patterns at scale.
+How It Works
+Data Generation → Feature Engineering → Model Training → Prediction Interface
+Project Structure
+mule-detection-framework/
+├── data_generator.py          # Generates synthetic transaction data
+├── feature_engineering.py     # Processes and prepares features
+├── model_building.py          # Trains the fraud detection model
+├── analysis.py                # Analyzes fraud patterns
+├── app.py                     # Streamlit prediction interface
+├── transactions.csv           # Raw transaction data
+├── featured_transactions.csv  # Processed dataset
+└── fraud_model.pkl            # Trained ML model
+Getting Started
+# Clone the repo
+git clone https://github.com/your-username/mule-detection-framework.git
+cd mule-detection-framework
 
-An Open-Source Behavioral Transaction Analysis System
-The Mule Detection Framework is an open-source system designed to study and detect behavioral patterns associated with mule accounts and layered money transfer networks in financial transactions. Unlike simple anomaly detection, it models the structural behavior of fraudulent transaction chains and evaluates accounts using transparent behavioral risk indicators. This framework supports research, experimentation, and educational exploration of transaction-level fraud dynamics.
+# Install dependencies
+pip install -r requirements.txt
 
+# Run the pipeline
+python data_generator.py
+python feature_engineering.py
+python model_building.py
 
-**Core Problem**
----
-Digital payment ecosystems allow funds to move almost instantly. While this improves efficiency, it also enables fraud networks to move stolen money through mule accounts within minutes.
-
-Mule accounts commonly exhibit patterns such as:
-
-Rapid forwarding of received funds
-
-High transaction bursts within short time windows
-
-Short operational lifespan
-
-Participation in multi-hop transfer chains
-
-Disproportionate outgoing-to-incoming flow
-
-Enterprise anti-money laundering systems attempt to detect such patterns using proprietary models. However, transparent and reproducible open-source frameworks that demonstrate how mule behavior can be modeled remain limited.
-While enterprise anti-money laundering (AML) systems exist, transparent open-source frameworks for modeling mule behavior at a structural level are scarce. This project addresses that gap.
-
-**System Overview**
----
-The framework:
-
-Generates synthetic, realistic transaction datasets
-
-Models transactions as directed graphs
-
-Extracts behavioral features per account
-
-Computes transparent risk scores
-
-Flags accounts with mule-like patterns
-
-It serves as a simulation-based research tool, not a production banking system.
-
-**Architecture**
----
-1. Transaction Simulation Layer
-Generates synthetic data mimicking:
-Normal user behavior
-Configurable mule chains and multi-hop transfers
-Variable transaction frequency
-Mixed legitimate and suspicious patterns
-Each transaction includes sender ID, receiver ID, timestamp, amount, and account age.
-2. Behavioral Feature Extraction
-Calculates per-account indicators:
-Account age
-Transaction frequency (velocity)
-Incoming vs. outgoing ratio
-Unique sender count
-Average forwarding delay
-Rapid transfer clustering
-3. Risk Scoring Engine
-Assigns a Mule Risk Score (0–100) via rule-based logic, with contributions from:
-New accounts with high activity
-Rapid outgoing transfers post-receipt
-Transaction bursts in short windows
-Multi-hop forwarding
-Future iterations will incorporate machine learning classifiers.
-4. Graph-Based Network Analysis
-Represents transactions as directed graphs (nodes: accounts; edges: transfers) to identify:
-Central relay nodes
-Layered transfer chains
-High-connectivity suspicious clusters
-
-
-**Evaluation Strategy**
----
-Assesses:
-
-Detection accuracy in synthetic datasets
-
-False positive rates
-
-Precision/recall balance
-
-Chain detection consistency
-
-Risk score interpretability
-
-Emphasis is on clarity, transparency, and reproducibility.
-
-
-**Intended Use Cases**
----
-
-Academic research in fraud modeling
-
-Educational demonstrations of mule detection
-
-Graph-based financial analysis experiments
-
-Foundation for ML-based fraud research
-
-
-**What This Project Is Not**
----
-
-A replacement for banking AML systems
-
-Connected to real financial institutions
-
-Using real customer data
-
-Making legal accusations
-
-It is strictly a controlled simulation and analysis framework.
-
-
-**Technical Stack**
----
-Python
-
-Pandas
-
-NetworkX
-
-Scikit-learn 
-
-FastAPI 
-
-Synthetic data generator
-
-
-**Why This Project Matters**
----
-Fraud detection often targets isolated transactions, overlooking network structures.
-This framework models transaction systems structurally, revealing hidden laundering patterns and shifting focus from "Is this transaction unusual?" to "How does this account behave in the network?"
-
-
-**Impact Statement**
----
-
-The Mule Detection Framework offers a transparent, modular foundation for studying behavioral fraud in digital transactions, integrating simulation, behavioral analytics, and graph theory to illuminate mule account operations.
+# Launch the app
+streamlit run app.py
+Tech Stack
+Python — Core language
+Pandas — Data processing
+Scikit-learn — Model training
+Matplotlib — Visualization
+Streamlit — Prediction interface
+Model Performance
+Metric
+Score
+Accuracy
+92%
+Team
+Member
+Work Done
+Member 1 ⭐
+Data generation, feature engineering, model training
+Member 2
+Documentation, architecture design, problem analysis
+Member 3
+Data analysis and visualization
+Member 4
+Prediction interface (Streamlit app)
+This project was built by Member 1, who developed the core pipeline — data generation, feature engineering, and model training.
