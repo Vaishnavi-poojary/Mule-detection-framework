@@ -1,18 +1,41 @@
-def amount_risk(amount):
-    if amount > 50000:
-        return 25
-    elif amount > 30000:
-        return 15
-    return 0
+# rules.py
+import json
 
+with open("risk_engine/config.json") as f:
+    CONFIG = json.load(f)
 
-def channel_risk(txn_type):
-    if txn_type in ["UPI", "IMPS"]:
-        return 10
-    return 0
+T = CONFIG["thresholds"]
+S = CONFIG["scores"]
 
-
-def rapid_activity(time_diff):
-    if time_diff < 600:  # 10 minutes
-        return 20
-    return 0
+RULES = [
+    {
+        "name": "new_account",
+        "check": lambda row: row["min_account_age_days"] < T["account_age_days"],
+        "score": S["new_account"],
+        "reason": "New account (<30 days)"
+    },
+    {
+        "name": "high_tx_rate",
+        "check": lambda row: row["tx_per_hour"] > T["tx_per_hour"],
+        "score": S["high_tx_rate"],
+        "reason": "High transaction rate (>10/hr)"
+    },
+    {
+        "name": "quick_forward",
+        "check": lambda row: row["quick_forward_flag"] == 1,
+        "score": S["quick_forward"],
+        "reason": "Quick forward (<5 min after receiving)"
+    },
+    {
+        "name": "many_senders",
+        "check": lambda row: row["unique_senders_recv"] > T["unique_senders"],
+        "score": S["many_senders"],
+        "reason": "Many unique senders"
+    },
+    {
+        "name": "high_amount_ratio",
+        "check": lambda row: row["high_amount_ratio"] > T["high_amount_ratio"],
+        "score": S["high_amount_ratio"],
+        "reason": "Majority high-value transactions"
+    },
+]
