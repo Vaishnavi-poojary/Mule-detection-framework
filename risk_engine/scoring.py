@@ -1,77 +1,178 @@
+"""
+risk_engine/scoring.py
+Member 2 – Risk Scoring Engine (Main Entry Point)
+
+How to run:
+    python -m risk_engine.scoring
+    (from the root of the project, not inside risk_engine/)
+
+Reads  : transactions.csv  (Member 1's output)
+Writes : flagged_accounts.csv  (for Member 4 API)
+         all_accounts.csv      (for Member 3 graph)
+"""
+
 import pandas as pd
-from rules import amount_risk, channel_risk, rapid_activity
+import json
+import sys
+import os
 
-# Load dataset
-data = pd.read_csv("transactions.csv")
+# ── Load config ────────────────────────────────────────────────────────────────
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+with open(CONFIG_PATH) as f:
+    CONFIG = json.load(f)
 
-# Convert timestamp to datetime
-data["timestamp"] = pd.to_datetime(data["timestamp"])
+T = CONFIG["thresholds"]   # threshold values
+S = CONFIG["scores"]       # score points per rule
 
-# Sort transactions by sender and time
-data = data.sort_values(["sender", "timestamp"])
-
-# Calculate time difference between transactions for same sender
-data["time_diff"] = data.groupby("sender")["timestamp"].diff().dt.total_seconds()
-
-# Replace NaN values
-data.fillna(0, inplace=True)
-
-# Count transactions per sender
-txn_count = data.groupby("sender").size()
+# ── Rules (imported from rules.py in same folder) ─────────────────────────────
+from risk_engine.rules import RULES
 
 
-# -------- Main Risk Calculation -------- #
-
-def calculate_risk(row):
-
-    score = 0
-
-    # Rule 1: New account
-    if row["account_age_days"] < 30:
-        score += 20
-
-    # Rule 2: Large amount transfer
-    score += amount_risk(row["amount"])
-
-    # Rule 3: Fast payment channel
-    score += channel_risk(row["transaction_type"])
-
-    # Rule 4: Rapid transactions
-    score += rapid_activity(row["time_diff"])
-
-    # Rule 5: Many transactions by same sender
-    if txn_count[row["sender"]] > 5:
-        score += 25
-
-    return score
+# ── Step 1: Load transactions ─────────────────────────────────────────────────
+def load_transactions(path="transactions.csv"):
+    df = pd.read_csv(path, parse_dates=["timestamp"])
+    print(f"[INFO] Loaded {len(df)} transactions.")
+    return df
 
 
-# Apply risk scoring
-data["risk_score"] = data.apply(calculate_risk, axis=1)
+# ── Step 2: Build per-account features ───────────────────────────────────────
+def build_account_features(df):
+    """
+    Groups all transactions by sender account and computes
+    7 behavioral features needed for risk scoring.
+    """
+    features = []
+    all_senders = df["sender"].unique()
 
-# Flag suspicious transactions
-data["flagged"] = data["risk_score"] > 40
+    for account in all_senders:
+        sent = df[df["sender"] == account]
+        received = df[df["receiver"] == account]
+
+        tx_count = len(sent)
+        if tx_count == 0:
+            continue
+
+        # Minimum account age seen across this account's transactions
+        min_age = int(sent["account_age_days"].min())
+
+        # Transactions per hour
+        if tx_count > 1:
+            span_hours = (
+                sent["timestamp"].max() - sent["timestamp"].min()
+            ).total_seconds() / 3600
+            tx_per_hour = round(tx_count / max(span_hours, 1), 2)
+        else:
+            tx_per_hour = 1.0
+
+        # Fraction of outgoing txns above high-amount threshold
+        high_ratio = round(
+            (sent["amount"] > T["high_amount"]).mean(), 2
+        )
+
+        # How many distinct accounts sent money TO this account
+        unique_recv = int(received["sender"].nunique())
+
+        # Quick-forward: receive → send within N minutes
+        quick_fwd = 0
+        window = pd.Timedelta(minutes=T["quick_forward_minutes"])
+        for recv_time in received["timestamp"]:
+            if not sent[
+                (sent["timestamp"] >= recv_time) &
+                (sent["timestamp"] <= recv_time + window)
+            ].empty:
+                quick_fwd = 1
+                break
+
+        features.append({
+            "account_id": account,
+            "min_account_age_days": min_age,
+            "tx_count": tx_count,
+            "tx_per_hour": tx_per_hour,
+            "high_amount_ratio": high_ratio,
+            "unique_senders_recv": unique_recv,
+            "quick_forward_flag": quick_fwd,
+            "avg_amount": round(float(sent["amount"].mean()), 2),
+        })
+
+    feature_df = pd.DataFrame(features)
+    print(f"[INFO] Built features for {len(feature_df)} accounts.")
+    return feature_df
 
 
-# -------- Account Level Risk -------- #
-
-account_risk = data.groupby("sender")["risk_score"].sum().reset_index()
-
-account_risk.rename(columns={"risk_score": "total_risk"}, inplace=True)
-
-# Flag mule accounts
-account_risk["is_mule"] = account_risk["total_risk"] > 70
-account_risk = account_risk.sort_values(by="total_risk", ascending=False)
-print("\nAccount Risk Scores:")
-print(account_risk)
-
-account_risk.to_csv("account_risk_scores.csv", index=False)
+# ── Step 3: Apply risk rules and compute score ────────────────────────────────
+def score_account(row):
+    """Returns (total_score, reasons_string) for one account row."""
+    total = 0
+    reasons = []
+    for rule in RULES:
+        if rule["check"](row):
+            total += rule["score"]
+            reasons.append(rule["reason"])
+    return min(total, 100), "; ".join(reasons) if reasons else "Clean"
 
 
-# Extract suspicious transactions
-flagged_accounts = data[data["flagged"] == True]
+def apply_scoring(feature_df):
+    scored = feature_df.copy()
+    results = scored.apply(
+        lambda r: pd.Series(score_account(r), index=["risk_score", "risk_reasons"]),
+        axis=1
+    )
+    scored = pd.concat([scored, results], axis=1)
+    scored["is_mule"] = (scored["risk_score"] > T["mule_flag_score"]).astype(int)
+    return scored
 
-print("\nSuspicious Transactions:")
-print(flagged_accounts.head())
 
-flagged_accounts.to_csv("flagged_accounts.csv", index=False)
+# ── Step 4: Save outputs ──────────────────────────────────────────────────────
+def save_outputs(scored_df, output_dir="."):
+    all_path = os.path.join(output_dir, "all_accounts.csv")
+    flagged_path = os.path.join(output_dir, "flagged_accounts.csv")
+
+    scored_df.to_csv(all_path, index=False)
+    print(f"[INFO] Saved {all_path} ({len(scored_df)} accounts)")
+
+    flagged = scored_df[scored_df["is_mule"] == 1].sort_values(
+        "risk_score", ascending=False
+    )
+    flagged.to_csv(flagged_path, index=False)
+    print(f"[INFO] Saved {flagged_path} ({len(flagged)} flagged accounts)")
+    return flagged
+
+
+# ── Step 5: Print summary ─────────────────────────────────────────────────────
+def print_report(scored_df, flagged):
+    total = len(scored_df)
+    n_flagged = len(flagged)
+    print("\n" + "=" * 52)
+    print("  MULE ACCOUNT RISK SCORING — SUMMARY")
+    print("=" * 52)
+    print(f"  Total accounts analysed : {total}")
+    print(f"  Flagged as mule (>{T['mule_flag_score']}) : {n_flagged}")
+    print(f"  Detection rate          : {round(n_flagged/total*100, 1)}%")
+    print()
+
+    bins   = [0, 20, 40, 60, 70, 80, 100]
+    labels = ["0-20", "21-40", "41-60", "61-70", "71-80", "81-100"]
+    scored_df = scored_df.copy()
+    scored_df["band"] = pd.cut(scored_df["risk_score"], bins=bins, labels=labels)
+    print("  Score Distribution:")
+    for band, count in scored_df["band"].value_counts().sort_index().items():
+        bar = "█" * max(1, count // max(1, total // 30))
+        print(f"    {band:8s} | {bar} {count}")
+
+    print()
+    print("  Top 10 Riskiest Accounts:")
+    print("  " + "-" * 48)
+    for _, r in flagged.head(10).iterrows():
+        print(f"  Acc {r['account_id']:>6} | Score {r['risk_score']:>3} | {r['risk_reasons']}")
+    print("=" * 52)
+    print("[DONE] Pass flagged_accounts.csv → Member 3 (graph) & Member 4 (API)\n")
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    tx_path = sys.argv[1] if len(sys.argv) > 1 else "transactions.csv"
+    df        = load_transactions(tx_path)
+    features  = build_account_features(df)
+    scored    = apply_scoring(features)
+    flagged   = save_outputs(scored)
+    print_report(scored, flagged)
