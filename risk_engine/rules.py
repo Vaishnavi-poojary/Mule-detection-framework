@@ -7,6 +7,7 @@ with open("risk_engine/config.json") as f:
 T = CONFIG["thresholds"]
 S = CONFIG["scores"]
 
+
 RULES = [
     {
         "name": "new_account",
@@ -18,13 +19,13 @@ RULES = [
         "name": "high_tx_rate",
         "check": lambda row: row["tx_per_hour"] > T["tx_per_hour"],
         "score": S["high_tx_rate"],
-        "reason": "High transaction rate (>10/hr)"
+        "reason": "High transaction rate"
     },
     {
         "name": "quick_forward",
         "check": lambda row: row["quick_forward_flag"] == 1,
         "score": S["quick_forward"],
-        "reason": "Quick forward (<5 min after receiving)"
+        "reason": "Quick forward after receiving"
     },
     {
         "name": "many_senders",
@@ -37,5 +38,11 @@ RULES = [
         "check": lambda row: row["high_amount_ratio"] > T["high_amount_ratio"],
         "score": S["high_amount_ratio"],
         "reason": "Majority high-value transactions"
+    },
+    {
+        "name": "fraud_ratio",
+        "check": lambda row: row.get("fraud_ratio", 0) > T["fraud_ratio"],
+        "score": S["fraud_ratio"],
+        "reason": "High fraud transaction ratio"
     },
 ]

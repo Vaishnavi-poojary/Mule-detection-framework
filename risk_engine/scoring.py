@@ -37,10 +37,6 @@ def load_transactions(path="transactions.csv"):
 
 # ── Step 2: Build per-account features ───────────────────────────────────────
 def build_account_features(df):
-    """
-    Groups all transactions by sender account and computes
-    7 behavioral features needed for risk scoring.
-    """
     features = []
     all_senders = df["sender"].unique()
 
@@ -52,10 +48,8 @@ def build_account_features(df):
         if tx_count == 0:
             continue
 
-        # Minimum account age seen across this account's transactions
         min_age = int(sent["account_age_days"].min())
 
-        # Transactions per hour
         if tx_count > 1:
             span_hours = (
                 sent["timestamp"].max() - sent["timestamp"].min()
@@ -64,15 +58,9 @@ def build_account_features(df):
         else:
             tx_per_hour = 1.0
 
-        # Fraction of outgoing txns above high-amount threshold
-        high_ratio = round(
-            (sent["amount"] > T["high_amount"]).mean(), 2
-        )
-
-        # How many distinct accounts sent money TO this account
+        high_ratio = round((sent["amount"] > T["high_amount"]).mean(), 2)
         unique_recv = int(received["sender"].nunique())
 
-        # Quick-forward: receive → send within N minutes
         quick_fwd = 0
         window = pd.Timedelta(minutes=T["quick_forward_minutes"])
         for recv_time in received["timestamp"]:
@@ -83,6 +71,12 @@ def build_account_features(df):
                 quick_fwd = 1
                 break
 
+        avg_amount = round(float(sent["amount"].mean()), 2)
+
+        # ── NEW: fraud_ratio from Member 1's own fraud_flag column ──
+        fraud_ratio = round(float(sent["fraud_flag"].mean()), 2) \
+                      if "fraud_flag" in sent.columns else 0.0
+
         features.append({
             "account_id": account,
             "min_account_age_days": min_age,
@@ -91,13 +85,13 @@ def build_account_features(df):
             "high_amount_ratio": high_ratio,
             "unique_senders_recv": unique_recv,
             "quick_forward_flag": quick_fwd,
-            "avg_amount": round(float(sent["amount"].mean()), 2),
+            "avg_amount": avg_amount,
+            "fraud_ratio": fraud_ratio,       # NEW
         })
 
     feature_df = pd.DataFrame(features)
     print(f"[INFO] Built features for {len(feature_df)} accounts.")
     return feature_df
-
 
 # ── Step 3: Apply risk rules and compute score ────────────────────────────────
 def score_account(row):
