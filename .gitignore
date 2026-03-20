@@ -209,3 +209,6 @@ all_accounts.csv
 flagged_accounts.csv
 __pycache__/
 *.pyc
+graph_analysis/transaction_graph.png
+graph_analysis/chain_report.csv
+__pycache__/
