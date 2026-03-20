@@ -1,0 +1,20 @@
+{
+  "thresholds": {
+    "account_age_days": 30,
+    "tx_per_hour": 0.01,
+    "quick_forward_minutes": 5,
+    "unique_senders": 3,
+    "high_amount": 30000,
+    "high_amount_ratio": 0.3,
+    "mule_flag_score": 35,
+    "fraud_ratio": 0.1
+  },
+  "scores": {
+    "new_account": 20,
+    "high_tx_rate": 25,
+    "quick_forward": 30,
+    "many_senders": 15,
+    "high_amount_ratio": 10,
+    "fraud_ratio": 30
+  }
+}
