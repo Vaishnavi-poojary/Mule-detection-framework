@@ -167,7 +167,7 @@ All 5 API endpoints should return `200 OK` at `http://127.0.0.1:8000/docs`.
 - Real-time streaming with Kafka
 - Interactive web dashboard
 - PageRank and betweenness centrality metrics
-- Crypto wallet risk mapping
+- Wallet risk mapping
 
 ---
 
