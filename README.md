@@ -1,141 +1,49 @@
-**Mule Detection Framework**
+
+
+## Member 1 Contribution – Data Pipeline and Model Development
+
+### Data Generation
+The first stage of the project involved generating a synthetic financial transaction dataset.
+A Python module was developed to simulate realistic transaction behaviour including transaction amounts, sender balance, receiver balance, and fraud labels.
+
+The generated dataset was stored in the file:
+
+transactions.csv
+
 ---
 
-An Open-Source Behavioral Transaction Analysis System
-The Mule Detection Framework is an open-source system designed to study and detect behavioral patterns associated with mule accounts and layered money transfer networks in financial transactions. Unlike simple anomaly detection, it models the structural behavior of fraudulent transaction chains and evaluates accounts using transparent behavioral risk indicators. This framework supports research, experimentation, and educational exploration of transaction-level fraud dynamics.
+### Feature Engineering
+The raw dataset was processed using a feature engineering pipeline.  
+This step prepares the dataset by selecting relevant attributes and transforming them into a format suitable for machine learning algorithms.
 
+The processed dataset was saved as:
 
-**Core Problem**
----
-Digital payment ecosystems allow funds to move almost instantly. While this improves efficiency, it also enables fraud networks to move stolen money through mule accounts within minutes.
+featured_transactions.csv
 
-Mule accounts commonly exhibit patterns such as:
-
-Rapid forwarding of received funds
-
-High transaction bursts within short time windows
-
-Short operational lifespan
-
-Participation in multi-hop transfer chains
-
-Disproportionate outgoing-to-incoming flow
-
-Enterprise anti-money laundering systems attempt to detect such patterns using proprietary models. However, transparent and reproducible open-source frameworks that demonstrate how mule behavior can be modeled remain limited.
-While enterprise anti-money laundering (AML) systems exist, transparent open-source frameworks for modeling mule behavior at a structural level are scarce. This project addresses that gap.
-
-**System Overview**
----
-The framework:
-
-Generates synthetic, realistic transaction datasets
-
-Models transactions as directed graphs
-
-Extracts behavioral features per account
-
-Computes transparent risk scores
-
-Flags accounts with mule-like patterns
-
-It serves as a simulation-based research tool, not a production banking system.
-
-**Architecture**
----
-1. Transaction Simulation Layer
-Generates synthetic data mimicking:
-Normal user behavior
-Configurable mule chains and multi-hop transfers
-Variable transaction frequency
-Mixed legitimate and suspicious patterns
-Each transaction includes sender ID, receiver ID, timestamp, amount, and account age.
-2. Behavioral Feature Extraction
-Calculates per-account indicators:
-Account age
-Transaction frequency (velocity)
-Incoming vs. outgoing ratio
-Unique sender count
-Average forwarding delay
-Rapid transfer clustering
-3. Risk Scoring Engine
-Assigns a Mule Risk Score (0–100) via rule-based logic, with contributions from:
-New accounts with high activity
-Rapid outgoing transfers post-receipt
-Transaction bursts in short windows
-Multi-hop forwarding
-Future iterations will incorporate machine learning classifiers.
-4. Graph-Based Network Analysis
-Represents transactions as directed graphs (nodes: accounts; edges: transfers) to identify:
-Central relay nodes
-Layered transfer chains
-High-connectivity suspicious clusters
-
-
-**Evaluation Strategy**
----
-Assesses:
-
-Detection accuracy in synthetic datasets
-
-False positive rates
-
-Precision/recall balance
-
-Chain detection consistency
-
-Risk score interpretability
-
-Emphasis is on clarity, transparency, and reproducibility.
-
-
-**Intended Use Cases**
 ---
 
-Academic research in fraud modeling
+### Model Development
+A machine learning model was implemented using the Python Scikit-learn library to classify financial transactions as either fraudulent or legitimate.
 
-Educational demonstrations of mule detection
+The model was trained using the processed dataset generated during the feature engineering stage.
 
-Graph-based financial analysis experiments
-
-Foundation for ML-based fraud research
-
-
-**What This Project Is Not**
 ---
 
-A replacement for banking AML systems
+### Model Evaluation
+After training, the model was evaluated on the test dataset to measure its performance.
 
-Connected to real financial institutions
+The fraud detection model achieved an accuracy score of **0.92**.
 
-Using real customer data
-
-Making legal accusations
-
-It is strictly a controlled simulation and analysis framework.
-
-
-**Technical Stack**
----
-Python
-
-Pandas
-
-NetworkX
-
-Scikit-learn 
-
-FastAPI 
-
-Synthetic data generator
-
-
-**Why This Project Matters**
----
-Fraud detection often targets isolated transactions, overlooking network structures.
-This framework models transaction systems structurally, revealing hidden laundering patterns and shifting focus from "Is this transaction unusual?" to "How does this account behave in the network?"
-
-
-**Impact Statement**
 ---
 
-The Mule Detection Framework offers a transparent, modular foundation for studying behavioral fraud in digital transactions, integrating simulation, behavioral analytics, and graph theory to illuminate mule account operations.
+### Implemented Modules
+
+data_generator.py – Generates synthetic financial transaction data  
+
+feature_engineering.py – Processes raw transaction data  
+
+model_building.py – Trains the fraud detection machine learning model  
+
+transactions.csv – Raw generated transaction dataset  
+
+featured_transactions.csv – Processed dataset used for training
